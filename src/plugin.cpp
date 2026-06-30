@@ -1,12 +1,13 @@
 #include "log.h"
 #include <RE/Skyrim.h>
 #include <SKSE/SKSE.h>
+#include <SimpleIni.h>
 
 static constexpr RE::FormID kLockpickFormID = 0x00000A;
 static constexpr RE::FormID kGoldFormID = 0x00000F;
 
-static constexpr int kLockpicksToAdd = 10;
-static constexpr int kGoldToRemove = 150;
+static int kLockpicksToAdd = 10;
+static int kGoldToRemove = 150;
 
 void PlaySound(const char* soundName)
 {
@@ -109,10 +110,24 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
     }
 }
 
+void LoadSettings()
+{
+    CSimpleIniA ini;
+    ini.SetUnicode();
+
+    const auto* plugin = SKSE::PluginDeclaration::GetSingleton();
+    const std::string path = "Data/SKSE/Plugins/" + std::string(plugin->GetName()) + ".ini";
+    ini.LoadFile(path.c_str());
+
+    kLockpicksToAdd = static_cast<std::uint32_t>(ini.GetDoubleValue("General", "iLockpicksToAdd", 10));
+    kGoldToRemove = static_cast<std::uint32_t>(ini.GetDoubleValue("General", "iGoldToRemove", 150));
+}
+
 SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
     SKSE::Init(skse);
     SetupLog();
+    LoadSettings();
 
     auto messaging = SKSE::GetMessagingInterface();
     if (!messaging->RegisterListener("SKSE", MessageHandler))
